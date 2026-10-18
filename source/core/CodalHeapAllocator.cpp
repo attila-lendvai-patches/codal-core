@@ -67,17 +67,19 @@ uint8_t heap_count = 0;
 // SoftDevice's priority-0 IRQs (RTC0/TIMER0/RADIO) live, so a long heap
 // search can never delay the BLE radio arming deadline. Nothing below
 // priority 0 touches the heap, so integrity is unaffected.
+// The priorities 0-7 take the top three bits of BASEPRI; the five below
+// read as zero, and a zero BASEPRI masks nothing.
 static uint32_t heap_lock_irq()
 {
     uint32_t basepri;
     __asm volatile ("MRS %0, basepri" : "=r" (basepri));
-    __asm volatile ("MSR basepri, %0" : : "r" (1));
+    __asm volatile ("MSR basepri, %0" : : "r" (1 << 5) : "memory");
     return basepri;
 }
 
 static void heap_unlock_irq(uint32_t basepri)
 {
-    __asm volatile ("MSR basepri, %0" : : "r" (basepri));
+    __asm volatile ("MSR basepri, %0" : : "r" (basepri) : "memory");
 }
 
 #if (CODAL_DEBUG >= CODAL_DEBUG_HEAP)
